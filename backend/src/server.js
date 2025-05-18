@@ -1,16 +1,18 @@
-const { WebSocketServer } = require("ws")
-const dotenv = require("dotenv")
+const express = require('express');
+const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http, {
+  cors: {
+    origin: "*"
+  }
+});
 
-dotenv.config()
+io.on('connection', (socket) => {
+  socket.on('chat message', (msg) => {
+    io.emit('chat message', msg);
+  });
+});
 
-const wss = new WebSocketServer({ port: process.env.PORT || 8080 })
-
-wss.on("connection", (ws) => {
-    ws.on("error", console.error)
-
-    ws.on("message", (data) => {
-        wss.clients.forEach((client) => client.send(data.toString()))
-    })
-
-    console.log("client connected")
-})
+http.listen(3000, () => {
+  console.log('Servidor ouvindo na porta 3000');
+});
