@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Privado</title>
+  <style>
+    body { font-family: Arial; background: #111; color: #fff; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    #login, #namePrompt { display: none; flex-direction: column; gap: 10px; width: 300px; }
+    #chat { display: none; flex-direction: column; width: 90%; max-width: 600px; height: 90vh; }
+    input, button { padding: 10px; border: none; border-radius: 5px; }
+    #messages { flex: 1; overflow-y: auto; background: #222; margin-bottom: 10px; padding: 10px; border-radius: 5px; }
+    .msg { margin: 5px 0; }
+  </style>
+</head>
+<body>
+
+<div id="login">
+  <input type="password" id="senha" placeholder="Digite a senha" />
+  <button onclick="checkSenha()">Entrar</button>
+</div>
+
+<div id="namePrompt">
+  <input type="text" id="username" placeholder="Digite seu nome" />
+  <button onclick="setUsername()">Entrar no Chat</button>
+</div>
+
+<div id="chat">
+  <div id="messages"></div>
+  <form id="form" action="">
+    <input id="input" autocomplete="off" placeholder="Digite uma mensagem" /><button>Enviar</button>
+  </form>
+</div>
+
+<script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+<script>
+  const socket = io('http://localhost:3000');
+  const senhaCorreta = "458";
+  let nome = "";
+
+  const login = document.getElementById("login");
+  const namePrompt = document.getElementById("namePrompt");
+  const chat = document.getElementById("chat");
+  const messages = document.getElementById("messages");
+  const form = document.getElementById("form");
+  const input = document.getElementById("input");
+
+  login.style.display = "flex";
+
+  function checkSenha() {
+    const senha = document.getElementById("senha").value;
+    if (senha === senhaCorreta) {
+      login.style.display = "none";
+      namePrompt.style.display = "flex";
+    } else {
+      alert("Senha incorreta!");
+    }
+  }
+
+  function setUsername() {
+    nome = document.getElementById("username").value.trim();
+    if (nome.length > 0) {
+      namePrompt.style.display = "none";
+      chat.style.display = "flex";
+    } else {
+      alert("Digite um nome válido.");
+    }
+  }
+
+  form.addEventListener("submit", function(e) {
+    e.preventDefault();
+    if (input.value) {
+      socket.emit("chat message", nome + ": " + input.value);
+      input.value = "";
+    }
+  });
+
+  socket.on("chat message", function(msg) {
+    const item = document.createElement("div");
+    item.className = "msg";
+    item.textContent = msg;
+    messages.appendChild(item);
+    messages.scrollTop = messages.scrollHeight;
+  });
+</script>
+</body>
+</html>
