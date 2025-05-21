@@ -42,14 +42,14 @@
 
   <script>
     const simbolos = ['🍒', '🍋', '🍊', '🍇', '🔔', '⭐'];
-    
+
     function girar() {
       const s1 = simbolos[Math.floor(Math.random() * simbolos.length)];
       const s2 = simbolos[Math.floor(Math.random() * simbolos.length)];
       const s3 = simbolos[Math.floor(Math.random() * simbolos.length)];
-      
+
       document.getElementById('slot').textContent = `${s1} ${s2} ${s3}`;
-      
+
       if (s1 === s2 && s2 === s3) {
         document.getElementById('resultado').textContent = 'JACKPOT! Você ganhou!';
       } else if (s1 === s2 || s2 === s3 || s1 === s3) {
