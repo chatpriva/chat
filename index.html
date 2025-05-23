@@ -1,63 +1,129 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+<!DOCTYPE html><html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>LINO - Caça-Níquel</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel de Lucro Surebet</title>
   <style>
     body {
-      text-align: center;
+      background-color: #111;
+      color: #f0f0f0;
       font-family: Arial, sans-serif;
-      background: #222;
-      color: #fff;
-      padding: 50px;
+      margin: 0;
+      padding: 20px;
     }
-    h1 {
-      color: #ffcc00;
-      font-size: 48px;
+    .container {
+      max-width: 600px;
+      margin: auto;
     }
-    .slot {
-      font-size: 80px;
-      margin: 20px;
-    }
-    .button {
-      padding: 15px 30px;
-      font-size: 20px;
-      cursor: pointer;
-      background: #ffcc00;
-      color: #000;
+    input, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
       border: none;
-      border-radius: 10px;
+      border-radius: 5px;
     }
-    .result {
-      margin-top: 30px;
-      font-size: 24px;
+    input {
+      background-color: #222;
+      color: #fff;
+    }
+    button {
+      background-color: crimson;
+      color: white;
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+    .lucifer-symbol {
+      font-size: 40px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .progress-bar {
+      background: #333;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .progress {
+      background: crimson;
+      height: 20px;
+      width: 0%;
+      transition: width 0.3s;
     }
   </style>
 </head>
 <body>
-  <h1>LINO</h1>
-  <div class="slot" id="slot">🍒 🍋 🍊</div>
-  <button class="button" onclick="girar()">GIRAR</button>
-  <div class="result" id="resultado"></div>
+  <div class="container">
+    <div class="lucifer-symbol">\u26A1\u2721\u2620</div>
+    <div id="login">
+      <input type="password" id="senha" placeholder="Digite a senha (458)" />
+      <button onclick="verificarSenha()">Entrar</button>
+    </div>
+    <div id="painel" class="hidden">
+      <h2>Painel de Apostas - Meta R$10.000</h2>
+      <input type="number" id="valor" placeholder="Valor Apostado" />
+      <input type="number" id="retorno" placeholder="Retorno Recebido" />
+      <button onclick="registrarAposta()">Registrar</button>
+      <div id="progresso">Lucro: R$0 de R$9.000</div>
+      <div class="progress-bar"><div class="progress" id="barra"></div></div>
+      <ul id="historico"></ul>
+    </div>
+  </div>  <script>
+    let bancaInicial = 1000;
+    let meta = 10000;
+    let lucroTotal = 0;
 
-  <script>
-    const simbolos = ['🍒', '🍋', '🍊', '🍇', '🔔', '⭐'];
-
-    function girar() {
-      const s1 = simbolos[Math.floor(Math.random() * simbolos.length)];
-      const s2 = simbolos[Math.floor(Math.random() * simbolos.length)];
-      const s3 = simbolos[Math.floor(Math.random() * simbolos.length)];
-
-      document.getElementById('slot').textContent = `${s1} ${s2} ${s3}`;
-
-      if (s1 === s2 && s2 === s3) {
-        document.getElementById('resultado').textContent = 'JACKPOT! Você ganhou!';
-      } else if (s1 === s2 || s2 === s3 || s1 === s3) {
-        document.getElementById('resultado').textContent = 'Quase lá! Dois símbolos iguais.';
+    function verificarSenha() {
+      const senha = document.getElementById('senha').value;
+      if (senha === '458') {
+        document.getElementById('login').classList.add('hidden');
+        document.getElementById('painel').classList.remove('hidden');
+        carregarHistorico();
       } else {
-        document.getElementById('resultado').textContent = 'Tente novamente!';
+        alert('Senha incorreta.');
       }
     }
-  </script>
-</body>
+
+    function registrarAposta() {
+      const valor = parseFloat(document.getElementById('valor').value);
+      const retorno = parseFloat(document.getElementById('retorno').value);
+      if (!valor || !retorno || retorno < valor) return alert('Valores inválidos.');
+
+      const lucro = retorno - valor;
+      lucroTotal += lucro;
+      salvarAposta(valor, retorno, lucro);
+      atualizarPainel();
+    }
+
+    function atualizarPainel() {
+      const progresso = document.getElementById('progresso');
+      const barra = document.getElementById('barra');
+      progresso.innerText = `Lucro: R$${lucroTotal.toFixed(2)} de R$${(meta - bancaInicial).toFixed(2)}`;
+      const porcentagem = (lucroTotal / (meta - bancaInicial)) * 100;
+      barra.style.width = porcentagem + '%';
+    }
+
+    function salvarAposta(valor, retorno, lucro) {
+      const item = { valor, retorno, lucro };
+      let dados = JSON.parse(localStorage.getItem('apostas')) || [];
+      dados.push(item);
+      localStorage.setItem('apostas', JSON.stringify(dados));
+      carregarHistorico();
+    }
+
+    function carregarHistorico() {
+      const lista = document.getElementById('historico');
+      lista.innerHTML = '';
+      let dados = JSON.parse(localStorage.getItem('apostas')) || [];
+      lucroTotal = 0;
+      dados.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `Aposta: R$${item.valor} | Retorno: R$${item.retorno} | Lucro: R$${item.lucro}`;
+        lista.appendChild(li);
+        lucroTotal += item.lucro;
+      });
+      atualizarPainel();
+    }
+  </script></body>
 </html>
