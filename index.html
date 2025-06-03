@@ -1,293 +1,151 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!DOCTYPE html><html lang="pt-br">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Chat Protegido com Imagens</title>
-<style>
-  /* Reset básico */
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #121212;
-    color: #eee;
-    display: flex; justify-content: center; align-items: center;
-    height: 100vh;
-  }
-  #login-screen, #chat-screen {
-    background: #1e1e1e;
-    border-radius: 10px;
-    width: 100%; max-width: 400px;
-    padding: 20px;
-    box-shadow: 0 0 10px #00bcd4;
-  }
-  #login-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  #login-screen input {
-    width: 100%;
-    padding: 12px;
-    margin-top: 15px;
-    font-size: 1.1em;
-    border-radius: 6px;
-    border: none;
-    outline: none;
-  }
-  #login-screen button {
-    margin-top: 15px;
-    width: 100%;
-    padding: 12px;
-    font-size: 1.1em;
-    background-color: #00bcd4;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    color: #121212;
-    font-weight: bold;
-    transition: background-color 0.3s ease;
-  }
-  #login-screen button:hover {
-    background-color: #019fbf;
-  }
-  #chat-screen {
-    display: none;
-    flex-direction: column;
-    height: 90vh;
-  }
-  #messages {
-    flex: 1;
-    overflow-y: auto;
-    margin-bottom: 10px;
-    padding-right: 10px;
-  }
-  .message {
-    background: #333;
-    margin-bottom: 10px;
-    padding: 10px 15px;
-    border-radius: 15px;
-    max-width: 80%;
-    word-wrap: break-word;
-  }
-  .message img {
-    max-width: 250px;
-    max-height: 250px;
-    border-radius: 10px;
-    margin-top: 5px;
-    display: block;
-  }
-  #input-area {
-    display: flex;
-    gap: 10px;
-  }
-  #input-text {
-    flex: 1;
-    padding: 10px;
-    font-size: 1em;
-    border-radius: 6px;
-    border: none;
-    outline: none;
-  }
-  #send-text-btn, #send-image-btn {
-    background-color: #00bcd4;
-    border: none;
-    border-radius: 6px;
-    color: #121212;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 10px 15px;
-    font-size: 1em;
-    transition: background-color 0.3s ease;
-  }
-  #send-text-btn:hover, #send-image-btn:hover {
-    background-color: #019fbf;
-  }
-  #image-input {
-    display: none;
-  }
-  /* Scrollbar estilizado */
-  #messages::-webkit-scrollbar {
-    width: 8px;
-  }
-  #messages::-webkit-scrollbar-thumb {
-    background-color: #00bcd4;
-    border-radius: 10px;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultBox Chat</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #1e1e2f;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    #login {
+      margin: auto;
+      text-align: center;
+    }
+    #chat {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .message {
+      margin: 5px 0;
+      padding: 8px;
+      background: #333;
+      border-radius: 5px;
+      word-break: break-word;
+    }
+    form {
+      display: flex;
+      padding: 10px;
+      background-color: #2c2c3a;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      margin-right: 5px;
+      border: none;
+      border-radius: 5px;
+    }
+    input[type="file"] {
+      margin-right: 5px;
+    }
+    button {
+      padding: 10px 15px;
+      border: none;
+      background: #4caf50;
+      color: white;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
+  <div id="login">
+    <h2>Digite a senha</h2>
+    <input type="password" id="passwordInput" placeholder="Senha">
+    <button onclick="checkPassword()">Entrar</button>
+  </div>  <div id="chat">
+    <div id="messages"></div>
+    <form id="messageForm">
+      <input type="text" id="messageInput" placeholder="Digite sua mensagem..." required>
+      <input type="file" id="imageInput" accept="image/*">
+      <button type="submit">Enviar</button>
+    </form>
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-<!-- Tela Login -->
-<div id="login-screen">
-  <h2>Entre com a senha</h2>
-  <input type="password" id="password-input" placeholder="Digite a senha" autocomplete="off" />
-  <button id="login-btn">Entrar</button>
-  <p id="login-error" style="color:#f44336;display:none;margin-top:10px;">Senha incorreta, tente novamente.</p>
-</div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAE-0JkVBOHyPhwBLiZA611slxM9j2ahq4",
+      authDomain: "chat-37.firebaseapp.com",
+      databaseURL: "https://chat-37-default-rtdb.firebaseio.com",
+      projectId: "chat-37",
+      storageBucket: "chat-37.firebasestorage.app",
+      messagingSenderId: "372607332680",
+      appId: "1:372607332680:web:af46f5a4a45a66699c037d"
+    };
 
-<!-- Tela Chat -->
-<div id="chat-screen">
-  <div id="messages"></div>
-  <div id="input-area">
-    <input type="text" id="input-text" placeholder="Digite sua mensagem..." autocomplete="off" />
-    <button id="send-text-btn">Enviar</button>
-    <button id="send-image-btn" title="Enviar imagem">📷</button>
-    <input type="file" id="image-input" accept="image/*" />
-  </div>
-</div>
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const messagesRef = ref(db, "messages");
 
-<script type="module">
-// Firebase config e inicialização
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-database.js";
+    const IMGBB_API_KEY = "9d8b9a43b078313550201dba6c888feb";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAE-0JkVBOHyPhwBLiZA611slxM9j2ahq4",
-  authDomain: "chat-37.firebaseapp.com",
-  databaseURL: "https://chat-37-default-rtdb.firebaseio.com",
-  projectId: "chat-37",
-  storageBucket: "chat-37.firebasestorage.app",
-  messagingSenderId: "372607332680",
-  appId: "1:372607332680:web:af46f5a4a45a66699c037d"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const messagesRef = ref(db, "messages");
+    const loginDiv = document.getElementById("login");
+    const chatDiv = document.getElementById("chat");
 
-// Variáveis DOM
-const loginScreen = document.getElementById("login-screen");
-const chatScreen = document.getElementById("chat-screen");
-const loginBtn = document.getElementById("login-btn");
-const passwordInput = document.getElementById("password-input");
-const loginError = document.getElementById("login-error");
-
-const messagesDiv = document.getElementById("messages");
-const inputText = document.getElementById("input-text");
-const sendTextBtn = document.getElementById("send-text-btn");
-const sendImageBtn = document.getElementById("send-image-btn");
-const imageInput = document.getElementById("image-input");
-
-// Senha fixa
-const PASSWORD = "375";
-
-// Função login
-loginBtn.addEventListener("click", () => {
-  if (passwordInput.value === PASSWORD) {
-    loginError.style.display = "none";
-    loginScreen.style.display = "none";
-    chatScreen.style.display = "flex";
-    startListeningMessages();
-  } else {
-    loginError.style.display = "block";
-  }
-});
-passwordInput.addEventListener("keydown", e => {
-  if(e.key === "Enter") loginBtn.click();
-});
-
-// Função para mostrar mensagens
-function addMessageToChat(data) {
-  const { text, imageUrl, timestamp } = data;
-  const msgEl = document.createElement("div");
-  msgEl.classList.add("message");
-  if (text) msgEl.textContent = text;
-  if (imageUrl) {
-    if(text) msgEl.appendChild(document.createElement("br"));
-    const img = document.createElement("img");
-    img.src = imageUrl;
-    img.alt = "Imagem enviada";
-    msgEl.appendChild(img);
-  }
-  messagesDiv.appendChild(msgEl);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-// Ouvir novas mensagens em tempo real
-function startListeningMessages() {
-  onChildAdded(messagesRef, (data) => {
-    addMessageToChat(data.val());
-  });
-}
-
-// Enviar mensagem de texto
-sendTextBtn.addEventListener("click", () => {
-  const text = inputText.value.trim();
-  if (!text) return;
-  push(messagesRef, {
-    text,
-    timestamp: serverTimestamp()
-  });
-  inputText.value = "";
-});
-
-// Enviar mensagem ao apertar Enter
-inputText.addEventListener("keydown", e => {
-  if(e.key === "Enter") sendTextBtn.click();
-});
-
-// Botão para abrir seletor de imagem
-sendImageBtn.addEventListener("click", () => {
-  imageInput.click();
-});
-
-// Upload da imagem para ImgBB e envio para Firebase
-imageInput.addEventListener("change", async () => {
-  const file = imageInput.files[0];
-  if (!file) return;
-
-  // Mostrar feedback de upload
-  sendImageBtn.disabled = true;
-  sendImageBtn.textContent = "Enviando...";
-
-  // Ler arquivo como base64
-  const base64 = await toBase64(file);
-
-  // Chave da API ImgBB - <COLOQUE A SUA AQUI>
-  const IMGBB_API_KEY = https://api.imgbb.com/1/upload
-
-  try {
-    // Fazer upload para ImgBB
-    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        image: base64.split(",")[1] // remove "data:image/xxx;base64,"
-      }),
-    });
-    const json = await res.json();
-    if(json.success) {
-      const imageUrl = json.data.url;
-      // Salvar no Firebase
-      push(messagesRef, {
-        imageUrl,
-        timestamp: serverTimestamp()
-      });
-    } else {
-      alert("Erro ao enviar imagem: " + JSON.stringify(json));
+    window.checkPassword = function() {
+      const input = document.getElementById("passwordInput").value;
+      if (input === "375") {
+        loginDiv.style.display = "none";
+        chatDiv.style.display = "flex";
+      } else {
+        alert("Senha incorreta.");
+      }
     }
-  } catch(e) {
-    alert("Erro no upload da imagem: " + e.message);
-  }
 
-  // Resetar botão e input
-  sendImageBtn.disabled = false;
-  sendImageBtn.textContent = "📷";
-  imageInput.value = "";
-});
+    document.getElementById("messageForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = document.getElementById("messageInput").value;
+      const file = document.getElementById("imageInput").files[0];
 
-// Helper: converter arquivo para base64
-function toBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
-  });
-}
-</script>
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = reader.result.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
+          const formData = new FormData();
+          formData.append("image", base64);
 
-</body>
-    </html>
+          const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+            method: "POST",
+            body: formData
+          });
+
+          const data = await res.json();
+          push(messagesRef, {
+            text: text || "[imagem]",
+            imageUrl: data.data.url
+          });
+        };
+        reader.readAsDataURL(file);
+      } else {
+        push(messagesRef, { text });
+      }
+
+      document.getElementById("messageInput").value = "";
+      document.getElementById("imageInput").value = "";
+    });
+
+    onChildAdded(messagesRef, (data) => {
+      const msg = data.val();
+      const div = document.createElement("div");
+      div.className = "message";
+      if (msg.imageUrl) {
+        div.innerHTML = `${msg.text}<br><img src="${msg.imageUrl}" style="max-width: 100%; margin-top: 5px;">`;
+      } else {
+        div.textContent = msg.text;
+      }
+      document.getElementById("messages").appendChild(div);
+      document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+    });
+  </script></body>
+  </html>
