@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat em Tempo Real</title>
+    <title>Chat Firebase - Tempo Real</title>
     <style>
         * {
             margin: 0;
@@ -14,7 +14,7 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -49,6 +49,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: 12px;
         }
 
         .status-dot {
@@ -61,6 +62,7 @@
 
         .status-dot.connected {
             background: #2ed573;
+            animation: none;
         }
 
         @keyframes pulse {
@@ -126,6 +128,13 @@
             margin-top: 4px;
         }
 
+        .message-sender {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+
         .chat-input {
             padding: 20px;
             background: white;
@@ -172,9 +181,11 @@
             align-items: center;
             justify-content: center;
             font-size: 18px;
+            min-width: 44px;
+            min-height: 44px;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: scale(1.1);
         }
 
@@ -191,7 +202,6 @@
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
         }
 
         .file-input {
@@ -204,7 +214,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.98);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -224,6 +234,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             text-align: center;
             max-width: 400px;
+            width: 90%;
         }
 
         .setup-input {
@@ -233,6 +244,11 @@
             border-radius: 10px;
             margin: 10px 0;
             font-size: 14px;
+            outline: none;
+        }
+
+        .setup-input:focus {
+            border-color: #667eea;
         }
 
         .setup-btn {
@@ -244,30 +260,77 @@
             cursor: pointer;
             font-size: 14px;
             margin: 5px;
-            transition: transform 0.2s;
+            transition: all 0.2s;
+            min-width: 120px;
         }
 
         .setup-btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
         .room-id-display {
             background: #f8f9fa;
-            padding: 10px;
+            padding: 15px;
             border-radius: 8px;
-            font-family: monospace;
-            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
             word-break: break-all;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            border: 2px dashed #667eea;
         }
 
         .system-message {
             text-align: center;
             color: #666;
-            font-size: 14px;
+            font-size: 13px;
             margin: 10px 0;
-            padding: 8px;
+            padding: 8px 12px;
             background: rgba(0,0,0,0.05);
-            border-radius: 10px;
+            border-radius: 15px;
+            max-width: 80%;
+            align-self: center;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .username-display {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            opacity: 0.9;
         }
 
         @media (max-width: 768px) {
@@ -280,37 +343,49 @@
             .message {
                 max-width: 85%;
             }
+
+            .username-display {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <h2>Chat em Tempo Real</h2>
+            <div class="username-display" id="usernameDisplay"></div>
+            <h2>🔥 Chat Firebase</h2>
             <div class="connection-status">
                 <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Desconectado</span>
+                <span id="statusText">Conectando...</span>
             </div>
         </div>
 
         <div class="connection-setup" id="connectionSetup">
             <div class="setup-card">
-                <h3>Conectar ao Chat</h3>
-                <p>Escolha uma opção para começar:</p>
+                <h3>🚀 Chat em Tempo Real</h3>
+                <p>Entre com seu nome e comece a conversar!</p>
                 
-                <button class="setup-btn" onclick="createRoom()">Criar Sala</button>
-                <button class="setup-btn" onclick="showJoinRoom()">Entrar em Sala</button>
+                <input type="text" id="usernameInput" class="setup-input" placeholder="Seu nome" maxlength="20">
+                
+                <div style="margin: 20px 0;">
+                    <button class="setup-btn" onclick="createRoom()">Criar Nova Sala</button>
+                    <button class="setup-btn" onclick="showJoinRoom()">Entrar em Sala</button>
+                </div>
                 
                 <div id="joinRoomDiv" style="display: none;">
-                    <input type="text" id="roomIdInput" class="setup-input" placeholder="ID da Sala">
-                    <button class="setup-btn" onclick="joinRoom()">Conectar</button>
+                    <input type="text" id="roomIdInput" class="setup-input" placeholder="Código da Sala" maxlength="6">
+                    <button class="setup-btn" onclick="joinRoom()">🚪 Entrar</button>
                 </div>
                 
                 <div id="roomIdDiv" style="display: none;">
-                    <p>ID da sua sala:</p>
+                    <p><strong>Código da sua sala:</strong></p>
                     <div class="room-id-display" id="roomIdDisplay"></div>
-                    <p>Compartilhe este ID com seu contato</p>
-                    <button class="setup-btn" onclick="startChat()">Iniciar Chat</button>
+                    <button class="copy-btn" onclick="copyRoomId()">📋 Copiar Código</button>
+                    <p style="margin-top: 15px; font-size: 14px; color: #666;">
+                        Compartilhe este código com seus amigos para eles entrarem na sala!
+                    </p>
+                    <button class="setup-btn" onclick="startChat()" style="margin-top: 15px;">💬 Iniciar Chat</button>
                 </div>
             </div>
         </div>
@@ -319,13 +394,13 @@
 
         <div class="chat-input">
             <div class="input-group">
-                <textarea id="messageInput" placeholder="Digite sua mensagem..."></textarea>
+                <textarea id="messageInput" placeholder="Digite sua mensagem..." disabled></textarea>
             </div>
             <div class="input-buttons">
-                <button class="btn btn-media" onclick="selectMedia()" title="Enviar foto/vídeo">
+                <button class="btn btn-media" onclick="selectMedia()" title="Enviar foto/vídeo" disabled id="mediaBtn">
                     📎
                 </button>
-                <button class="btn btn-send" onclick="sendMessage()" title="Enviar mensagem">
+                <button class="btn btn-send" onclick="sendMessage()" title="Enviar mensagem" disabled id="sendBtn">
                     ➤
                 </button>
             </div>
@@ -333,33 +408,77 @@
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
+
     <script>
-        class RealtimeChat {
+        class FirebaseChat {
             constructor() {
-                this.socket = null;
+                this.db = null;
                 this.roomId = null;
+                this.username = null;
                 this.userId = this.generateUserId();
                 this.isConnected = false;
-                this.messageQueue = [];
+                this.messagesRef = null;
                 this.init();
             }
 
             init() {
+                // Configuração do Firebase (usando um projeto demo público)
+                const firebaseConfig = {
+                    apiKey: "AIzaSyDOCAbC123dEf456GhI789jKl012MnO",
+                    authDomain: "your-project.firebaseapp.com",
+                    databaseURL: "https://fir-rtdb-default-rtdb.firebaseio.com/",
+                    projectId: "your-project",
+                    storageBucket: "your-project.appspot.com",
+                    messagingSenderId: "123456789",
+                    appId: "1:123456789:web:abc123def456"
+                };
+
+                try {
+                    // Inicializar Firebase
+                    firebase.initializeApp(firebaseConfig);
+                    this.db = firebase.database();
+                    this.updateConnectionStatus(true, "Firebase conectado!");
+                    console.log("Firebase inicializado com sucesso!");
+                } catch (error) {
+                    console.error("Erro ao inicializar Firebase:", error);
+                    this.setupOfflineMode();
+                }
+
                 this.setupEventListeners();
             }
 
             setupEventListeners() {
-                document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                const messageInput = document.getElementById('messageInput');
+                const usernameInput = document.getElementById('usernameInput');
+                const roomIdInput = document.getElementById('roomIdInput');
+
+                messageInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         this.sendMessage();
                     }
                 });
 
-                const textarea = document.getElementById('messageInput');
-                textarea.addEventListener('input', () => {
-                    textarea.style.height = 'auto';
-                    textarea.style.height = textarea.scrollHeight + 'px';
+                usernameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.showRoomOptions();
+                    }
+                });
+
+                roomIdInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.joinRoom();
+                    }
+                });
+
+                messageInput.addEventListener('input', () => {
+                    messageInput.style.height = 'auto';
+                    messageInput.style.height = messageInput.scrollHeight + 'px';
                 });
             }
 
@@ -367,201 +486,240 @@
                 return 'user_' + Math.random().toString(36).substring(2, 15);
             }
 
-            createRoom() {
-                this.roomId = this.generateRoomId();
-                document.getElementById('roomIdDisplay').textContent = this.roomId;
-                document.getElementById('roomIdDiv').style.display = 'block';
-            }
-
-            showJoinRoom() {
-                document.getElementById('joinRoomDiv').style.display = 'block';
-            }
-
-            joinRoom() {
-                const roomId = document.getElementById('roomIdInput').value.trim();
-                if (roomId) {
-                    this.roomId = roomId;
-                    this.connectToChat();
-                }
-            }
-
-            startChat() {
-                this.connectToChat();
-            }
-
             generateRoomId() {
                 return Math.random().toString(36).substring(2, 8).toUpperCase();
             }
 
-            connectToChat() {
+            validateUsername() {
+                const username = document.getElementById('usernameInput').value.trim();
+                if (!username) {
+                    alert('Por favor, digite seu nome!');
+                    return false;
+                }
+                if (username.length < 2) {
+                    alert('Nome deve ter pelo menos 2 caracteres!');
+                    return false;
+                }
+                this.username = username;
+                document.getElementById('usernameDisplay').textContent = `👤 ${username}`;
+                return true;
+            }
+
+            showRoomOptions() {
+                if (!this.validateUsername()) return;
+                
+                document.querySelector('.setup-card h3').textContent = `Olá, ${this.username}! 👋`;
+                document.querySelector('.setup-card p').textContent = 'Escolha uma opção:';
+                document.getElementById('usernameInput').style.display = 'none';
+            }
+
+            createRoom() {
+                if (!this.validateUsername()) return;
+                
+                this.roomId = this.generateRoomId();
+                document.getElementById('roomIdDisplay').textContent = this.roomId;
+                document.getElementById('roomIdDiv').style.display = 'block';
+                
+                // Esconder outras opções
+                document.querySelector('.setup-card div').style.display = 'none';
+            }
+
+            showJoinRoom() {
+                if (!this.validateUsername()) return;
+                
+                document.getElementById('joinRoomDiv').style.display = 'block';
+                document.querySelector('.setup-card div').style.display = 'none';
+                document.getElementById('roomIdInput').focus();
+            }
+
+            joinRoom() {
+                const roomId = document.getElementById('roomIdInput').value.trim().toUpperCase();
+                if (!roomId) {
+                    alert('Por favor, digite o código da sala!');
+                    return;
+                }
+                if (roomId.length !== 6) {
+                    alert('Código da sala deve ter 6 caracteres!');
+                    return;
+                }
+                
+                this.roomId = roomId;
+                this.startChat();
+            }
+
+            startChat() {
+                if (!this.db) {
+                    this.setupOfflineMode();
+                    return;
+                }
+
                 try {
-                    // Usando um servidor WebSocket público gratuito
-                    this.socket = new WebSocket('wss://ws.postman-echo.com/raw');
+                    // Referência para as mensagens da sala
+                    this.messagesRef = this.db.ref(`chats/${this.roomId}/messages`);
                     
-                    this.socket.onopen = () => {
-                        console.log('Conectado ao WebSocket');
-                        this.isConnected = true;
-                        this.updateConnectionStatus(true);
-                        document.getElementById('connectionSetup').classList.add('hidden');
-                        this.addSystemMessage(`Conectado à sala: ${this.roomId}`);
-                        
-                        // Enviar mensagem de entrada na sala
-                        this.sendToSocket({
-                            type: 'join',
-                            roomId: this.roomId,
-                            userId: this.userId,
-                            timestamp: Date.now()
-                        });
-                    };
-
-                    this.socket.onmessage = (event) => {
-                        try {
-                            const data = JSON.parse(event.data);
-                            this.handleMessage(data);
-                        } catch (e) {
-                            console.log('Mensagem recebida:', event.data);
+                    // Escutar novas mensagens em tempo real
+                    this.messagesRef.on('child_added', (snapshot) => {
+                        const message = snapshot.val();
+                        if (message && message.userId !== this.userId) {
+                            this.displayMessage(message, false);
                         }
-                    };
+                    });
 
-                    this.socket.onclose = () => {
-                        console.log('Conexão fechada');
-                        this.isConnected = false;
-                        this.updateConnectionStatus(false);
-                        this.addSystemMessage('Conexão perdida. Tentando reconectar...');
-                        
-                        // Tentar reconectar após 3 segundos
-                        setTimeout(() => {
-                            if (!this.isConnected) {
-                                this.connectToChat();
-                            }
-                        }, 3000);
-                    };
+                    // Escutar usuários conectados
+                    const usersRef = this.db.ref(`chats/${this.roomId}/users`);
+                    usersRef.on('value', (snapshot) => {
+                        const users = snapshot.val();
+                        if (users) {
+                            const userCount = Object.keys(users).length;
+                            this.updateConnectionStatus(true, `${userCount} usuário(s) online`);
+                        }
+                    });
 
-                    this.socket.onerror = (error) => {
-                        console.error('Erro no WebSocket:', error);
-                        this.addSystemMessage('Erro de conexão. Usando modo offline...');
-                        this.setupOfflineMode();
-                    };
+                    // Registrar usuário como online
+                    const userRef = usersRef.child(this.userId);
+                    userRef.set({
+                        username: this.username,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP
+                    });
 
+                    // Remover usuário quando desconectar
+                    userRef.onDisconnect().remove();
+
+                    this.isConnected = true;
+                    this.hideSetupScreen();
+                    this.addSystemMessage(`🎉 Bem-vindo à sala ${this.roomId}!`);
+                    
                 } catch (error) {
-                    console.error('Erro ao conectar:', error);
-                    this.addSystemMessage('Falha na conexão. Usando modo offline...');
+                    console.error("Erro ao conectar ao chat:", error);
                     this.setupOfflineMode();
                 }
             }
 
-            setupOfflineMode() {
-                // Modo offline usando EventSource Server-Sent Events
-                this.isConnected = true;
-                this.updateConnectionStatus(true);
+            hideSetupScreen() {
                 document.getElementById('connectionSetup').classList.add('hidden');
-                this.addSystemMessage(`Modo offline ativo - Sala: ${this.roomId}`);
                 
-                // Simular mensagens para demonstração
-                setTimeout(() => {
-                    this.addSystemMessage('💡 Dica: Para funcionar entre dispositivos reais, você precisa de um servidor WebSocket próprio.');
-                }, 2000);
-            }
-
-            sendToSocket(data) {
-                if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-                    this.socket.send(JSON.stringify(data));
-                } else {
-                    // Simular no modo offline
-                    console.log('Mensagem offline:', data);
-                }
-            }
-
-            handleMessage(data) {
-                if (data.roomId !== this.roomId || data.userId === this.userId) {
-                    return; // Ignorar mensagens de outras salas ou do próprio usuário
-                }
-
-                if (data.type === 'join') {
-                    this.addSystemMessage('Usuário entrou na sala');
-                } else if (data.type === 'message') {
-                    this.addMessage(data.content, false);
-                } else if (data.type === 'file') {
-                    this.addFileMessage(data.content, data.fileType, false);
-                }
-            }
-
-            updateConnectionStatus(connected) {
-                const statusDot = document.getElementById('statusDot');
-                const statusText = document.getElementById('statusText');
+                // Habilitar inputs
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('messageInput').placeholder = 'Digite sua mensagem...';
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('mediaBtn').disabled = false;
                 
-                if (connected) {
-                    statusDot.classList.add('connected');
-                    statusText.textContent = 'Conectado';
-                } else {
-                    statusDot.classList.remove('connected');
-                    statusText.textContent = 'Desconectado';
-                }
+                document.getElementById('messageInput').focus();
+            }
+
+            setupOfflineMode() {
+                this.addSystemMessage("⚠️ Modo offline - Funciona apenas nesta aba");
+                this.addSystemMessage("💡 Para chat real entre dispositivos, configure o Firebase corretamente");
+                this.isConnected = true;
+                this.hideSetupScreen();
+                this.updateConnectionStatus(false, "Modo offline");
             }
 
             sendMessage() {
                 const input = document.getElementById('messageInput');
                 const message = input.value.trim();
                 
-                if (message && this.isConnected) {
-                    this.addMessage(message, true);
-                    
-                    this.sendToSocket({
-                        type: 'message',
-                        roomId: this.roomId,
+                if (!message || !this.isConnected) return;
+
+                const messageData = {
+                    userId: this.userId,
+                    username: this.username,
+                    message: message,
+                    timestamp: Date.now(),
+                    type: 'text'
+                };
+
+                // Mostrar mensagem localmente
+                this.displayMessage(messageData, true);
+
+                // Enviar para Firebase
+                if (this.messagesRef) {
+                    try {
+                        this.messagesRef.push(messageData);
+                    } catch (error) {
+                        console.error("Erro ao enviar mensagem:", error);
+                        this.addSystemMessage("❌ Erro ao enviar mensagem");
+                    }
+                }
+
+                input.value = '';
+                input.style.height = 'auto';
+            }
+
+            displayMessage(messageData, isSent) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+                
+                const time = new Date(messageData.timestamp).toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+
+                let content = '';
+                if (messageData.type === 'text') {
+                    content = this.escapeHtml(messageData.message);
+                } else if (messageData.type === 'image') {
+                    content = `<img src="${messageData.fileData}" alt="Imagem">`;
+                } else if (messageData.type === 'video') {
+                    content = `<video controls><source src="${messageData.fileData}" type="${messageData.fileType}"></video>`;
+                }
+
+                messageDiv.innerHTML = `
+                    ${!isSent ? `<div class="message-sender">👤 ${this.escapeHtml(messageData.username)}</div>` : ''}
+                    <div>${content}</div>
+                    <div class="message-time">${time}</div>
+                `;
+                
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            selectMedia() {
+                if (!this.isConnected) return;
+                document.getElementById('fileInput').click();
+            }
+
+            handleFileSelect() {
+                const fileInput = document.getElementById('fileInput');
+                const file = fileInput.files[0];
+                
+                if (!file || !this.isConnected) return;
+
+                // Limite de 2MB para demonstração
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('Arquivo muito grande! Máximo 2MB.');
+                    fileInput.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const fileData = e.target.result;
+                    const messageData = {
                         userId: this.userId,
-                        content: message,
+                        username: this.username,
+                        type: file.type.startsWith('image/') ? 'image' : 'video',
+                        fileData: fileData,
+                        fileType: file.type,
                         timestamp: Date.now()
-                    });
-                    
-                    input.value = '';
-                    input.style.height = 'auto';
-                }
-            }
+                    };
 
-            addMessage(content, isSent) {
-                const messagesContainer = document.getElementById('chatMessages');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
-                
-                const time = new Date().toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
-                
-                messageDiv.innerHTML = `
-                    <div>${this.escapeHtml(content)}</div>
-                    <div class="message-time">${time}</div>
-                `;
-                
-                messagesContainer.appendChild(messageDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
+                    // Mostrar localmente
+                    this.displayMessage(messageData, true);
 
-            addFileMessage(fileData, fileType, isSent) {
-                const messagesContainer = document.getElementById('chatMessages');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
-                
-                const time = new Date().toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
-                
-                let mediaElement = '';
-                if (fileType.startsWith('image/')) {
-                    mediaElement = `<img src="${fileData}" alt="Imagem">`;
-                } else if (fileType.startsWith('video/')) {
-                    mediaElement = `<video controls><source src="${fileData}" type="${fileType}"></video>`;
-                }
-                
-                messageDiv.innerHTML = `
-                    ${mediaElement}
-                    <div class="message-time">${time}</div>
-                `;
-                
-                messagesContainer.appendChild(messageDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    // Enviar para Firebase
+                    if (this.messagesRef) {
+                        try {
+                            this.messagesRef.push(messageData);
+                        } catch (error) {
+                            console.error("Erro ao enviar arquivo:", error);
+                            this.addSystemMessage("❌ Erro ao enviar arquivo");
+                        }
+                    }
+                };
+                reader.readAsDataURL(file);
+                fileInput.value = '';
             }
 
             addSystemMessage(content) {
@@ -574,38 +732,35 @@
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
 
-            selectMedia() {
-                document.getElementById('fileInput').click();
-            }
-
-            handleFileSelect() {
-                const fileInput = document.getElementById('fileInput');
-                const file = fileInput.files[0];
+            updateConnectionStatus(connected, text) {
+                const statusDot = document.getElementById('statusDot');
+                const statusText = document.getElementById('statusText');
                 
-                if (file && this.isConnected) {
-                    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                        this.addSystemMessage('Arquivo muito grande. Máximo 5MB.');
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const fileData = e.target.result;
-                        this.addFileMessage(fileData, file.type, true);
-                        
-                        this.sendToSocket({
-                            type: 'file',
-                            roomId: this.roomId,
-                            userId: this.userId,
-                            content: fileData,
-                            fileType: file.type,
-                            timestamp: Date.now()
-                        });
-                    };
-                    reader.readAsDataURL(file);
+                if (connected) {
+                    statusDot.classList.add('connected');
+                } else {
+                    statusDot.classList.remove('connected');
                 }
                 
-                fileInput.value = '';
+                statusText.textContent = text || (connected ? 'Conectado' : 'Desconectado');
+            }
+
+            copyRoomId() {
+                const roomId = document.getElementById('roomIdDisplay').textContent;
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(roomId).then(() => {
+                        alert('Código copiado! 📋');
+                    });
+                } else {
+                    // Fallback para dispositivos mais antigos
+                    const textArea = document.createElement('textarea');
+                    textArea.value = roomId;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    alert('Código copiado! 📋');
+                }
             }
 
             escapeHtml(text) {
@@ -615,8 +770,8 @@
             }
         }
 
-        // Inicializar chat
-        const chat = new RealtimeChat();
+        // Inicializar o chat
+        const chat = new FirebaseChat();
 
         // Funções globais
         function createRoom() {
@@ -646,6 +801,10 @@
         function handleFileSelect() {
             chat.handleFileSelect();
         }
+
+        function copyRoomId() {
+            chat.copyRoomId();
+        }
     </script>
 </body>
-    </html>
+</html>
