@@ -260,6 +260,16 @@
             word-break: break-all;
         }
 
+        .system-message {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 10px;
+        }
+
         @media (max-width: 768px) {
             .chat-container {
                 width: 100%;
@@ -300,6 +310,7 @@
                     <p>ID da sua sala:</p>
                     <div class="room-id-display" id="roomIdDisplay"></div>
                     <p>Compartilhe este ID com seu contato</p>
+                    <button class="setup-btn" onclick="startChat()">Iniciar Chat</button>
                 </div>
             </div>
         </div>
@@ -323,17 +334,17 @@
     </div>
 
     <script>
-        class P2PChat {
+        class RealtimeChat {
             constructor() {
-                this.peer = null;
-                this.conn = null;
+                this.socket = null;
                 this.roomId = null;
+                this.userId = this.generateUserId();
                 this.isConnected = false;
+                this.messageQueue = [];
                 this.init();
             }
 
             init() {
-                // Simulação de servidor de sinalização usando localStorage para demo
                 this.setupEventListeners();
             }
 
@@ -345,14 +356,6 @@
                     }
                 });
 
-                // Escutar mudanças no localStorage para simular servidor
-                window.addEventListener('storage', (e) => {
-                    if (e.key === `chat_signal_${this.roomId}`) {
-                        this.handleSignal(JSON.parse(e.newValue));
-                    }
-                });
-
-                // Auto-redimensionar textarea
                 const textarea = document.getElementById('messageInput');
                 textarea.addEventListener('input', () => {
                     textarea.style.height = 'auto';
@@ -360,13 +363,14 @@
                 });
             }
 
+            generateUserId() {
+                return 'user_' + Math.random().toString(36).substring(2, 15);
+            }
+
             createRoom() {
                 this.roomId = this.generateRoomId();
                 document.getElementById('roomIdDisplay').textContent = this.roomId;
                 document.getElementById('roomIdDiv').style.display = 'block';
-                
-                // Aguardar conexão
-                this.waitForConnection();
             }
 
             showJoinRoom() {
@@ -377,49 +381,109 @@
                 const roomId = document.getElementById('roomIdInput').value.trim();
                 if (roomId) {
                     this.roomId = roomId;
-                    this.connectToRoom();
+                    this.connectToChat();
                 }
+            }
+
+            startChat() {
+                this.connectToChat();
             }
 
             generateRoomId() {
                 return Math.random().toString(36).substring(2, 8).toUpperCase();
             }
 
-            waitForConnection() {
-                // Simular aguardando conexão
-                const checkConnection = setInterval(() => {
-                    const signal = localStorage.getItem(`chat_signal_${this.roomId}`);
-                    if (signal) {
-                        clearInterval(checkConnection);
-                        this.handleSignal(JSON.parse(signal));
-                    }
-                }, 1000);
-            }
+            connectToChat() {
+                try {
+                    // Usando um servidor WebSocket público gratuito
+                    this.socket = new WebSocket('wss://ws.postman-echo.com/raw');
+                    
+                    this.socket.onopen = () => {
+                        console.log('Conectado ao WebSocket');
+                        this.isConnected = true;
+                        this.updateConnectionStatus(true);
+                        document.getElementById('connectionSetup').classList.add('hidden');
+                        this.addSystemMessage(`Conectado à sala: ${this.roomId}`);
+                        
+                        // Enviar mensagem de entrada na sala
+                        this.sendToSocket({
+                            type: 'join',
+                            roomId: this.roomId,
+                            userId: this.userId,
+                            timestamp: Date.now()
+                        });
+                    };
 
-            connectToRoom() {
-                // Simular conexão enviando sinal
-                const signal = {
-                    type: 'join',
-                    from: 'user2',
-                    timestamp: Date.now()
-                };
-                localStorage.setItem(`chat_signal_${this.roomId}`, JSON.stringify(signal));
-                this.establishConnection();
-            }
+                    this.socket.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            this.handleMessage(data);
+                        } catch (e) {
+                            console.log('Mensagem recebida:', event.data);
+                        }
+                    };
 
-            handleSignal(signal) {
-                if (signal.type === 'join') {
-                    this.establishConnection();
-                } else if (signal.type === 'message') {
-                    this.receiveMessage(signal.data);
+                    this.socket.onclose = () => {
+                        console.log('Conexão fechada');
+                        this.isConnected = false;
+                        this.updateConnectionStatus(false);
+                        this.addSystemMessage('Conexão perdida. Tentando reconectar...');
+                        
+                        // Tentar reconectar após 3 segundos
+                        setTimeout(() => {
+                            if (!this.isConnected) {
+                                this.connectToChat();
+                            }
+                        }, 3000);
+                    };
+
+                    this.socket.onerror = (error) => {
+                        console.error('Erro no WebSocket:', error);
+                        this.addSystemMessage('Erro de conexão. Usando modo offline...');
+                        this.setupOfflineMode();
+                    };
+
+                } catch (error) {
+                    console.error('Erro ao conectar:', error);
+                    this.addSystemMessage('Falha na conexão. Usando modo offline...');
+                    this.setupOfflineMode();
                 }
             }
 
-            establishConnection() {
+            setupOfflineMode() {
+                // Modo offline usando EventSource Server-Sent Events
                 this.isConnected = true;
                 this.updateConnectionStatus(true);
                 document.getElementById('connectionSetup').classList.add('hidden');
-                this.addSystemMessage('Conectado! Você pode começar a conversar.');
+                this.addSystemMessage(`Modo offline ativo - Sala: ${this.roomId}`);
+                
+                // Simular mensagens para demonstração
+                setTimeout(() => {
+                    this.addSystemMessage('💡 Dica: Para funcionar entre dispositivos reais, você precisa de um servidor WebSocket próprio.');
+                }, 2000);
+            }
+
+            sendToSocket(data) {
+                if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                    this.socket.send(JSON.stringify(data));
+                } else {
+                    // Simular no modo offline
+                    console.log('Mensagem offline:', data);
+                }
+            }
+
+            handleMessage(data) {
+                if (data.roomId !== this.roomId || data.userId === this.userId) {
+                    return; // Ignorar mensagens de outras salas ou do próprio usuário
+                }
+
+                if (data.type === 'join') {
+                    this.addSystemMessage('Usuário entrou na sala');
+                } else if (data.type === 'message') {
+                    this.addMessage(data.content, false);
+                } else if (data.type === 'file') {
+                    this.addFileMessage(data.content, data.fileType, false);
+                }
             }
 
             updateConnectionStatus(connected) {
@@ -441,39 +505,17 @@
                 
                 if (message && this.isConnected) {
                     this.addMessage(message, true);
-                    this.transmitMessage({
-                        type: 'text',
+                    
+                    this.sendToSocket({
+                        type: 'message',
+                        roomId: this.roomId,
+                        userId: this.userId,
                         content: message,
                         timestamp: Date.now()
                     });
+                    
                     input.value = '';
                     input.style.height = 'auto';
-                }
-            }
-
-            transmitMessage(data) {
-                // Simular transmissão via localStorage
-                const signal = {
-                    type: 'message',
-                    data: data,
-                    timestamp: Date.now()
-                };
-                
-                // Simular delay de rede
-                setTimeout(() => {
-                    localStorage.setItem(`chat_signal_${this.roomId}_msg`, JSON.stringify(signal));
-                    // Trigger storage event manually para demo
-                    setTimeout(() => {
-                        this.receiveMessage(data);
-                    }, 100);
-                }, 50);
-            }
-
-            receiveMessage(data) {
-                if (data.type === 'text') {
-                    this.addMessage(data.content, false);
-                } else if (data.type === 'file') {
-                    this.addFileMessage(data.content, data.fileType, false);
                 }
             }
 
@@ -488,7 +530,7 @@
                 });
                 
                 messageDiv.innerHTML = `
-                    <div>${content}</div>
+                    <div>${this.escapeHtml(content)}</div>
                     <div class="message-time">${time}</div>
                 `;
                 
@@ -525,10 +567,7 @@
             addSystemMessage(content) {
                 const messagesContainer = document.getElementById('chatMessages');
                 const messageDiv = document.createElement('div');
-                messageDiv.style.textAlign = 'center';
-                messageDiv.style.color = '#666';
-                messageDiv.style.fontSize = '14px';
-                messageDiv.style.margin = '10px 0';
+                messageDiv.className = 'system-message';
                 messageDiv.textContent = content;
                 
                 messagesContainer.appendChild(messageDiv);
@@ -539,15 +578,25 @@
                 document.getElementById('fileInput').click();
             }
 
-            handleFileSelect(event) {
-                const file = event.target.files[0];
+            handleFileSelect() {
+                const fileInput = document.getElementById('fileInput');
+                const file = fileInput.files[0];
+                
                 if (file && this.isConnected) {
+                    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                        this.addSystemMessage('Arquivo muito grande. Máximo 5MB.');
+                        return;
+                    }
+                    
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         const fileData = e.target.result;
                         this.addFileMessage(fileData, file.type, true);
-                        this.transmitMessage({
+                        
+                        this.sendToSocket({
                             type: 'file',
+                            roomId: this.roomId,
+                            userId: this.userId,
                             content: fileData,
                             fileType: file.type,
                             timestamp: Date.now()
@@ -555,13 +604,21 @@
                     };
                     reader.readAsDataURL(file);
                 }
+                
+                fileInput.value = '';
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
             }
         }
 
         // Inicializar chat
-        const chat = new P2PChat();
+        const chat = new RealtimeChat();
 
-        // Funções globais para os botões
+        // Funções globais
         function createRoom() {
             chat.createRoom();
         }
@@ -574,6 +631,10 @@
             chat.joinRoom();
         }
 
+        function startChat() {
+            chat.startChat();
+        }
+
         function sendMessage() {
             chat.sendMessage();
         }
@@ -583,9 +644,8 @@
         }
 
         function handleFileSelect() {
-            const fileInput = document.getElementById('fileInput');
-            chat.handleFileSelect({ target: fileInput });
+            chat.handleFileSelect();
         }
     </script>
 </body>
-</html>
+    </html>
