@@ -1,91 +1,591 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Painel de Surebet</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #111;
-      color: #fff;
-      text-align: center;
-      padding-top: 100px;
-    }
-    input, button {
-      padding: 10px;
-      margin: 10px;
-      border: none;
-      border-radius: 5px;
-    }
-    #senha {
-      background-color: #222;
-      color: #fff;
-      outline: none;
-    }
-    #entrar {
-      background-color: #c62828;
-      color: #fff;
-      cursor: pointer;
-    }
-    #painel {
-      display: none;
-      margin-top: 30px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat em Tempo Real</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .connection-status {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4757;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #2ed573;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background: #f1f3f4;
+            color: #333;
+        }
+
+        .message img, .message video {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-top: 8px;
+        }
+
+        .message video {
+            max-height: 300px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            flex: 1;
+            position: relative;
+        }
+
+        #messageInput {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+            resize: none;
+            min-height: 20px;
+            max-height: 100px;
+            font-family: inherit;
+        }
+
+        #messageInput:focus {
+            border-color: #667eea;
+        }
+
+        .input-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .btn:hover {
+            transform: scale(1.1);
+        }
+
+        .btn-media {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: white;
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .connection-setup {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .connection-setup.hidden {
+            display: none;
+        }
+
+        .setup-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .setup-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .setup-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        .setup-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .room-id-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div id="login">
-    <input type="password" id="senha" placeholder="Senha" />
-    <button id="entrar">Entrar</button>
-  </div>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>Chat em Tempo Real</h2>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Desconectado</span>
+            </div>
+        </div>
 
-  <div id="painel">
-    <h1>Painel de Controle - Meta: R$10.000</h1>
-    <p>Banca Inicial: R$<span id="banca">1000</span></p>
-    <input type="number" id="lucro" placeholder="Lucro da aposta (R$)">
-    <button onclick="adicionarLucro()">Adicionar Lucro</button>
-    <p>Progresso: R$<span id="progresso">0</span> / R$10.000</p>
-    <progress id="barra" value="0" max="10000" style="width:80%"></progress>
-  </div>
+        <div class="connection-setup" id="connectionSetup">
+            <div class="setup-card">
+                <h3>Conectar ao Chat</h3>
+                <p>Escolha uma opção para começar:</p>
+                
+                <button class="setup-btn" onclick="createRoom()">Criar Sala</button>
+                <button class="setup-btn" onclick="showJoinRoom()">Entrar em Sala</button>
+                
+                <div id="joinRoomDiv" style="display: none;">
+                    <input type="text" id="roomIdInput" class="setup-input" placeholder="ID da Sala">
+                    <button class="setup-btn" onclick="joinRoom()">Conectar</button>
+                </div>
+                
+                <div id="roomIdDiv" style="display: none;">
+                    <p>ID da sua sala:</p>
+                    <div class="room-id-display" id="roomIdDisplay"></div>
+                    <p>Compartilhe este ID com seu contato</p>
+                </div>
+            </div>
+        </div>
 
-  <script>
-    const senha = document.getElementById("senha");
-    const login = document.getElementById("login");
-    const painel = document.getElementById("painel");
-    const progresso = document.getElementById("progresso");
-    const banca = document.getElementById("banca");
-    const barra = document.getElementById("barra");
+        <div class="chat-messages" id="chatMessages"></div>
 
-    let saldo = localStorage.getItem("saldoSurebet") 
-                ? parseFloat(localStorage.getItem("saldoSurebet")) 
-                : 1000;
+        <div class="chat-input">
+            <div class="input-group">
+                <textarea id="messageInput" placeholder="Digite sua mensagem..."></textarea>
+            </div>
+            <div class="input-buttons">
+                <button class="btn btn-media" onclick="selectMedia()" title="Enviar foto/vídeo">
+                    📎
+                </button>
+                <button class="btn btn-send" onclick="sendMessage()" title="Enviar mensagem">
+                    ➤
+                </button>
+            </div>
+            <input type="file" id="fileInput" class="file-input" accept="image/*,video/*" onchange="handleFileSelect()">
+        </div>
+    </div>
 
-    banca.innerText = saldo;
-    progresso.innerText = saldo - 1000;
-    barra.value = saldo - 1000;
+    <script>
+        class P2PChat {
+            constructor() {
+                this.peer = null;
+                this.conn = null;
+                this.roomId = null;
+                this.isConnected = false;
+                this.init();
+            }
 
-    document.getElementById("entrar").onclick = () => {
-      if (senha.value === "458") {
-        login.style.display = "none";
-        painel.style.display = "block";
-      } else {
-        alert("Senha incorreta");
-      }
-    };
+            init() {
+                // Simulação de servidor de sinalização usando localStorage para demo
+                this.setupEventListeners();
+            }
 
-    function adicionarLucro() {
-      const valor = parseFloat(document.getElementById("lucro").value);
-      if (!isNaN(valor)) {
-        saldo += valor;
-        localStorage.setItem("saldoSurebet", saldo);
-        banca.innerText = saldo.toFixed(2);
-        progresso.innerText = (saldo - 1000).toFixed(2);
-        barra.value = saldo - 1000;
-        document.getElementById("lucro").value = "";
-      }
-    }
-  </script>
+            setupEventListeners() {
+                document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+
+                // Escutar mudanças no localStorage para simular servidor
+                window.addEventListener('storage', (e) => {
+                    if (e.key === `chat_signal_${this.roomId}`) {
+                        this.handleSignal(JSON.parse(e.newValue));
+                    }
+                });
+
+                // Auto-redimensionar textarea
+                const textarea = document.getElementById('messageInput');
+                textarea.addEventListener('input', () => {
+                    textarea.style.height = 'auto';
+                    textarea.style.height = textarea.scrollHeight + 'px';
+                });
+            }
+
+            createRoom() {
+                this.roomId = this.generateRoomId();
+                document.getElementById('roomIdDisplay').textContent = this.roomId;
+                document.getElementById('roomIdDiv').style.display = 'block';
+                
+                // Aguardar conexão
+                this.waitForConnection();
+            }
+
+            showJoinRoom() {
+                document.getElementById('joinRoomDiv').style.display = 'block';
+            }
+
+            joinRoom() {
+                const roomId = document.getElementById('roomIdInput').value.trim();
+                if (roomId) {
+                    this.roomId = roomId;
+                    this.connectToRoom();
+                }
+            }
+
+            generateRoomId() {
+                return Math.random().toString(36).substring(2, 8).toUpperCase();
+            }
+
+            waitForConnection() {
+                // Simular aguardando conexão
+                const checkConnection = setInterval(() => {
+                    const signal = localStorage.getItem(`chat_signal_${this.roomId}`);
+                    if (signal) {
+                        clearInterval(checkConnection);
+                        this.handleSignal(JSON.parse(signal));
+                    }
+                }, 1000);
+            }
+
+            connectToRoom() {
+                // Simular conexão enviando sinal
+                const signal = {
+                    type: 'join',
+                    from: 'user2',
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(`chat_signal_${this.roomId}`, JSON.stringify(signal));
+                this.establishConnection();
+            }
+
+            handleSignal(signal) {
+                if (signal.type === 'join') {
+                    this.establishConnection();
+                } else if (signal.type === 'message') {
+                    this.receiveMessage(signal.data);
+                }
+            }
+
+            establishConnection() {
+                this.isConnected = true;
+                this.updateConnectionStatus(true);
+                document.getElementById('connectionSetup').classList.add('hidden');
+                this.addSystemMessage('Conectado! Você pode começar a conversar.');
+            }
+
+            updateConnectionStatus(connected) {
+                const statusDot = document.getElementById('statusDot');
+                const statusText = document.getElementById('statusText');
+                
+                if (connected) {
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'Conectado';
+                } else {
+                    statusDot.classList.remove('connected');
+                    statusText.textContent = 'Desconectado';
+                }
+            }
+
+            sendMessage() {
+                const input = document.getElementById('messageInput');
+                const message = input.value.trim();
+                
+                if (message && this.isConnected) {
+                    this.addMessage(message, true);
+                    this.transmitMessage({
+                        type: 'text',
+                        content: message,
+                        timestamp: Date.now()
+                    });
+                    input.value = '';
+                    input.style.height = 'auto';
+                }
+            }
+
+            transmitMessage(data) {
+                // Simular transmissão via localStorage
+                const signal = {
+                    type: 'message',
+                    data: data,
+                    timestamp: Date.now()
+                };
+                
+                // Simular delay de rede
+                setTimeout(() => {
+                    localStorage.setItem(`chat_signal_${this.roomId}_msg`, JSON.stringify(signal));
+                    // Trigger storage event manually para demo
+                    setTimeout(() => {
+                        this.receiveMessage(data);
+                    }, 100);
+                }, 50);
+            }
+
+            receiveMessage(data) {
+                if (data.type === 'text') {
+                    this.addMessage(data.content, false);
+                } else if (data.type === 'file') {
+                    this.addFileMessage(data.content, data.fileType, false);
+                }
+            }
+
+            addMessage(content, isSent) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+                
+                const time = new Date().toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                messageDiv.innerHTML = `
+                    <div>${content}</div>
+                    <div class="message-time">${time}</div>
+                `;
+                
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            addFileMessage(fileData, fileType, isSent) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+                
+                const time = new Date().toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                let mediaElement = '';
+                if (fileType.startsWith('image/')) {
+                    mediaElement = `<img src="${fileData}" alt="Imagem">`;
+                } else if (fileType.startsWith('video/')) {
+                    mediaElement = `<video controls><source src="${fileData}" type="${fileType}"></video>`;
+                }
+                
+                messageDiv.innerHTML = `
+                    ${mediaElement}
+                    <div class="message-time">${time}</div>
+                `;
+                
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            addSystemMessage(content) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.style.textAlign = 'center';
+                messageDiv.style.color = '#666';
+                messageDiv.style.fontSize = '14px';
+                messageDiv.style.margin = '10px 0';
+                messageDiv.textContent = content;
+                
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            selectMedia() {
+                document.getElementById('fileInput').click();
+            }
+
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (file && this.isConnected) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const fileData = e.target.result;
+                        this.addFileMessage(fileData, file.type, true);
+                        this.transmitMessage({
+                            type: 'file',
+                            content: fileData,
+                            fileType: file.type,
+                            timestamp: Date.now()
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        // Inicializar chat
+        const chat = new P2PChat();
+
+        // Funções globais para os botões
+        function createRoom() {
+            chat.createRoom();
+        }
+
+        function showJoinRoom() {
+            chat.showJoinRoom();
+        }
+
+        function joinRoom() {
+            chat.joinRoom();
+        }
+
+        function sendMessage() {
+            chat.sendMessage();
+        }
+
+        function selectMedia() {
+            chat.selectMedia();
+        }
+
+        function handleFileSelect() {
+            const fileInput = document.getElementById('fileInput');
+            chat.handleFileSelect({ target: fileInput });
+        }
+    </script>
 </body>
 </html>
