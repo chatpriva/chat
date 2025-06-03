@@ -1,810 +1,293 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Firebase - Tempo Real</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .chat-container {
-            width: 90%;
-            max-width: 800px;
-            height: 90vh;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .chat-header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            position: relative;
-        }
-
-        .connection-status {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #ff4757;
-            animation: pulse 2s infinite;
-        }
-
-        .status-dot.connected {
-            background: #2ed573;
-            animation: none;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .message {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            word-wrap: break-word;
-            position: relative;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message.sent {
-            align-self: flex-end;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .message.received {
-            align-self: flex-start;
-            background: #f1f3f4;
-            color: #333;
-        }
-
-        .message img, .message video {
-            max-width: 100%;
-            border-radius: 12px;
-            margin-top: 8px;
-        }
-
-        .message video {
-            max-height: 300px;
-        }
-
-        .message-time {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-top: 4px;
-        }
-
-        .message-sender {
-            font-size: 11px;
-            opacity: 0.8;
-            margin-bottom: 4px;
-            font-weight: bold;
-        }
-
-        .chat-input {
-            padding: 20px;
-            background: white;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            gap: 10px;
-            align-items: flex-end;
-        }
-
-        .input-group {
-            flex: 1;
-            position: relative;
-        }
-
-        #messageInput {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 25px;
-            outline: none;
-            font-size: 14px;
-            resize: none;
-            min-height: 20px;
-            max-height: 100px;
-            font-family: inherit;
-        }
-
-        #messageInput:focus {
-            border-color: #667eea;
-        }
-
-        .input-buttons {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn {
-            padding: 12px;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            min-width: 44px;
-            min-height: 44px;
-        }
-
-        .btn:hover:not(:disabled) {
-            transform: scale(1.1);
-        }
-
-        .btn-media {
-            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-            color: white;
-        }
-
-        .btn-send {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .connection-setup {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.98);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            z-index: 1000;
-        }
-
-        .connection-setup.hidden {
-            display: none;
-        }
-
-        .setup-card {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-
-        .setup-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            margin: 10px 0;
-            font-size: 14px;
-            outline: none;
-        }
-
-        .setup-input:focus {
-            border-color: #667eea;
-        }
-
-        .setup-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            margin: 5px;
-            transition: all 0.2s;
-            min-width: 120px;
-        }
-
-        .setup-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .room-id-display {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            margin: 15px 0;
-            word-break: break-all;
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-            border: 2px dashed #667eea;
-        }
-
-        .system-message {
-            text-align: center;
-            color: #666;
-            font-size: 13px;
-            margin: 10px 0;
-            padding: 8px 12px;
-            background: rgba(0,0,0,0.05);
-            border-radius: 15px;
-            max-width: 80%;
-            align-self: center;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .copy-btn {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-top: 10px;
-        }
-
-        .copy-btn:hover {
-            background: #218838;
-        }
-
-        .username-display {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 12px;
-            opacity: 0.9;
-        }
-
-        @media (max-width: 768px) {
-            .chat-container {
-                width: 100%;
-                height: 100vh;
-                border-radius: 0;
-            }
-            
-            .message {
-                max-width: 85%;
-            }
-
-            .username-display {
-                display: none;
-            }
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chat Protegido com Imagens</title>
+<style>
+  /* Reset básico */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #121212;
+    color: #eee;
+    display: flex; justify-content: center; align-items: center;
+    height: 100vh;
+  }
+  #login-screen, #chat-screen {
+    background: #1e1e1e;
+    border-radius: 10px;
+    width: 100%; max-width: 400px;
+    padding: 20px;
+    box-shadow: 0 0 10px #00bcd4;
+  }
+  #login-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #login-screen input {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    font-size: 1.1em;
+    border-radius: 6px;
+    border: none;
+    outline: none;
+  }
+  #login-screen button {
+    margin-top: 15px;
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1em;
+    background-color: #00bcd4;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #121212;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  #login-screen button:hover {
+    background-color: #019fbf;
+  }
+  #chat-screen {
+    display: none;
+    flex-direction: column;
+    height: 90vh;
+  }
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    padding-right: 10px;
+  }
+  .message {
+    background: #333;
+    margin-bottom: 10px;
+    padding: 10px 15px;
+    border-radius: 15px;
+    max-width: 80%;
+    word-wrap: break-word;
+  }
+  .message img {
+    max-width: 250px;
+    max-height: 250px;
+    border-radius: 10px;
+    margin-top: 5px;
+    display: block;
+  }
+  #input-area {
+    display: flex;
+    gap: 10px;
+  }
+  #input-text {
+    flex: 1;
+    padding: 10px;
+    font-size: 1em;
+    border-radius: 6px;
+    border: none;
+    outline: none;
+  }
+  #send-text-btn, #send-image-btn {
+    background-color: #00bcd4;
+    border: none;
+    border-radius: 6px;
+    color: #121212;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 10px 15px;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+  }
+  #send-text-btn:hover, #send-image-btn:hover {
+    background-color: #019fbf;
+  }
+  #image-input {
+    display: none;
+  }
+  /* Scrollbar estilizado */
+  #messages::-webkit-scrollbar {
+    width: 8px;
+  }
+  #messages::-webkit-scrollbar-thumb {
+    background-color: #00bcd4;
+    border-radius: 10px;
+  }
+</style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="username-display" id="usernameDisplay"></div>
-            <h2>🔥 Chat Firebase</h2>
-            <div class="connection-status">
-                <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Conectando...</span>
-            </div>
-        </div>
 
-        <div class="connection-setup" id="connectionSetup">
-            <div class="setup-card">
-                <h3>🚀 Chat em Tempo Real</h3>
-                <p>Entre com seu nome e comece a conversar!</p>
-                
-                <input type="text" id="usernameInput" class="setup-input" placeholder="Seu nome" maxlength="20">
-                
-                <div style="margin: 20px 0;">
-                    <button class="setup-btn" onclick="createRoom()">Criar Nova Sala</button>
-                    <button class="setup-btn" onclick="showJoinRoom()">Entrar em Sala</button>
-                </div>
-                
-                <div id="joinRoomDiv" style="display: none;">
-                    <input type="text" id="roomIdInput" class="setup-input" placeholder="Código da Sala" maxlength="6">
-                    <button class="setup-btn" onclick="joinRoom()">🚪 Entrar</button>
-                </div>
-                
-                <div id="roomIdDiv" style="display: none;">
-                    <p><strong>Código da sua sala:</strong></p>
-                    <div class="room-id-display" id="roomIdDisplay"></div>
-                    <button class="copy-btn" onclick="copyRoomId()">📋 Copiar Código</button>
-                    <p style="margin-top: 15px; font-size: 14px; color: #666;">
-                        Compartilhe este código com seus amigos para eles entrarem na sala!
-                    </p>
-                    <button class="setup-btn" onclick="startChat()" style="margin-top: 15px;">💬 Iniciar Chat</button>
-                </div>
-            </div>
-        </div>
+<!-- Tela Login -->
+<div id="login-screen">
+  <h2>Entre com a senha</h2>
+  <input type="password" id="password-input" placeholder="Digite a senha" autocomplete="off" />
+  <button id="login-btn">Entrar</button>
+  <p id="login-error" style="color:#f44336;display:none;margin-top:10px;">Senha incorreta, tente novamente.</p>
+</div>
 
-        <div class="chat-messages" id="chatMessages"></div>
+<!-- Tela Chat -->
+<div id="chat-screen">
+  <div id="messages"></div>
+  <div id="input-area">
+    <input type="text" id="input-text" placeholder="Digite sua mensagem..." autocomplete="off" />
+    <button id="send-text-btn">Enviar</button>
+    <button id="send-image-btn" title="Enviar imagem">📷</button>
+    <input type="file" id="image-input" accept="image/*" />
+  </div>
+</div>
 
-        <div class="chat-input">
-            <div class="input-group">
-                <textarea id="messageInput" placeholder="Digite sua mensagem..." disabled></textarea>
-            </div>
-            <div class="input-buttons">
-                <button class="btn btn-media" onclick="selectMedia()" title="Enviar foto/vídeo" disabled id="mediaBtn">
-                    📎
-                </button>
-                <button class="btn btn-send" onclick="sendMessage()" title="Enviar mensagem" disabled id="sendBtn">
-                    ➤
-                </button>
-            </div>
-            <input type="file" id="fileInput" class="file-input" accept="image/*,video/*" onchange="handleFileSelect()">
-        </div>
-    </div>
+<script type="module">
+// Firebase config e inicialização
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
+import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-database.js";
 
-    <!-- Firebase SDK -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAE-0JkVBOHyPhwBLiZA611slxM9j2ahq4",
+  authDomain: "chat-37.firebaseapp.com",
+  databaseURL: "https://chat-37-default-rtdb.firebaseio.com",
+  projectId: "chat-37",
+  storageBucket: "chat-37.firebasestorage.app",
+  messagingSenderId: "372607332680",
+  appId: "1:372607332680:web:af46f5a4a45a66699c037d"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const messagesRef = ref(db, "messages");
 
-    <script>
-        class FirebaseChat {
-            constructor() {
-                this.db = null;
-                this.roomId = null;
-                this.username = null;
-                this.userId = this.generateUserId();
-                this.isConnected = false;
-                this.messagesRef = null;
-                this.init();
-            }
+// Variáveis DOM
+const loginScreen = document.getElementById("login-screen");
+const chatScreen = document.getElementById("chat-screen");
+const loginBtn = document.getElementById("login-btn");
+const passwordInput = document.getElementById("password-input");
+const loginError = document.getElementById("login-error");
 
-            init() {
-                // Configuração do Firebase (usando um projeto demo público)
-                const firebaseConfig = {
-                    apiKey: "AIzaSyDOCAbC123dEf456GhI789jKl012MnO",
-                    authDomain: "your-project.firebaseapp.com",
-                    databaseURL: "https://fir-rtdb-default-rtdb.firebaseio.com/",
-                    projectId: "your-project",
-                    storageBucket: "your-project.appspot.com",
-                    messagingSenderId: "123456789",
-                    appId: "1:123456789:web:abc123def456"
-                };
+const messagesDiv = document.getElementById("messages");
+const inputText = document.getElementById("input-text");
+const sendTextBtn = document.getElementById("send-text-btn");
+const sendImageBtn = document.getElementById("send-image-btn");
+const imageInput = document.getElementById("image-input");
 
-                try {
-                    // Inicializar Firebase
-                    firebase.initializeApp(firebaseConfig);
-                    this.db = firebase.database();
-                    this.updateConnectionStatus(true, "Firebase conectado!");
-                    console.log("Firebase inicializado com sucesso!");
-                } catch (error) {
-                    console.error("Erro ao inicializar Firebase:", error);
-                    this.setupOfflineMode();
-                }
+// Senha fixa
+const PASSWORD = "375";
 
-                this.setupEventListeners();
-            }
+// Função login
+loginBtn.addEventListener("click", () => {
+  if (passwordInput.value === PASSWORD) {
+    loginError.style.display = "none";
+    loginScreen.style.display = "none";
+    chatScreen.style.display = "flex";
+    startListeningMessages();
+  } else {
+    loginError.style.display = "block";
+  }
+});
+passwordInput.addEventListener("keydown", e => {
+  if(e.key === "Enter") loginBtn.click();
+});
 
-            setupEventListeners() {
-                const messageInput = document.getElementById('messageInput');
-                const usernameInput = document.getElementById('usernameInput');
-                const roomIdInput = document.getElementById('roomIdInput');
+// Função para mostrar mensagens
+function addMessageToChat(data) {
+  const { text, imageUrl, timestamp } = data;
+  const msgEl = document.createElement("div");
+  msgEl.classList.add("message");
+  if (text) msgEl.textContent = text;
+  if (imageUrl) {
+    if(text) msgEl.appendChild(document.createElement("br"));
+    const img = document.createElement("img");
+    img.src = imageUrl;
+    img.alt = "Imagem enviada";
+    msgEl.appendChild(img);
+  }
+  messagesDiv.appendChild(msgEl);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
 
-                messageInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        this.sendMessage();
-                    }
-                });
+// Ouvir novas mensagens em tempo real
+function startListeningMessages() {
+  onChildAdded(messagesRef, (data) => {
+    addMessageToChat(data.val());
+  });
+}
 
-                usernameInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        this.showRoomOptions();
-                    }
-                });
+// Enviar mensagem de texto
+sendTextBtn.addEventListener("click", () => {
+  const text = inputText.value.trim();
+  if (!text) return;
+  push(messagesRef, {
+    text,
+    timestamp: serverTimestamp()
+  });
+  inputText.value = "";
+});
 
-                roomIdInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        this.joinRoom();
-                    }
-                });
+// Enviar mensagem ao apertar Enter
+inputText.addEventListener("keydown", e => {
+  if(e.key === "Enter") sendTextBtn.click();
+});
 
-                messageInput.addEventListener('input', () => {
-                    messageInput.style.height = 'auto';
-                    messageInput.style.height = messageInput.scrollHeight + 'px';
-                });
-            }
+// Botão para abrir seletor de imagem
+sendImageBtn.addEventListener("click", () => {
+  imageInput.click();
+});
 
-            generateUserId() {
-                return 'user_' + Math.random().toString(36).substring(2, 15);
-            }
+// Upload da imagem para ImgBB e envio para Firebase
+imageInput.addEventListener("change", async () => {
+  const file = imageInput.files[0];
+  if (!file) return;
 
-            generateRoomId() {
-                return Math.random().toString(36).substring(2, 8).toUpperCase();
-            }
+  // Mostrar feedback de upload
+  sendImageBtn.disabled = true;
+  sendImageBtn.textContent = "Enviando...";
 
-            validateUsername() {
-                const username = document.getElementById('usernameInput').value.trim();
-                if (!username) {
-                    alert('Por favor, digite seu nome!');
-                    return false;
-                }
-                if (username.length < 2) {
-                    alert('Nome deve ter pelo menos 2 caracteres!');
-                    return false;
-                }
-                this.username = username;
-                document.getElementById('usernameDisplay').textContent = `👤 ${username}`;
-                return true;
-            }
+  // Ler arquivo como base64
+  const base64 = await toBase64(file);
 
-            showRoomOptions() {
-                if (!this.validateUsername()) return;
-                
-                document.querySelector('.setup-card h3').textContent = `Olá, ${this.username}! 👋`;
-                document.querySelector('.setup-card p').textContent = 'Escolha uma opção:';
-                document.getElementById('usernameInput').style.display = 'none';
-            }
+  // Chave da API ImgBB - <COLOQUE A SUA AQUI>
+  const IMGBB_API_KEY = https://api.imgbb.com/1/upload
 
-            createRoom() {
-                if (!this.validateUsername()) return;
-                
-                this.roomId = this.generateRoomId();
-                document.getElementById('roomIdDisplay').textContent = this.roomId;
-                document.getElementById('roomIdDiv').style.display = 'block';
-                
-                // Esconder outras opções
-                document.querySelector('.setup-card div').style.display = 'none';
-            }
+  try {
+    // Fazer upload para ImgBB
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image: base64.split(",")[1] // remove "data:image/xxx;base64,"
+      }),
+    });
+    const json = await res.json();
+    if(json.success) {
+      const imageUrl = json.data.url;
+      // Salvar no Firebase
+      push(messagesRef, {
+        imageUrl,
+        timestamp: serverTimestamp()
+      });
+    } else {
+      alert("Erro ao enviar imagem: " + JSON.stringify(json));
+    }
+  } catch(e) {
+    alert("Erro no upload da imagem: " + e.message);
+  }
 
-            showJoinRoom() {
-                if (!this.validateUsername()) return;
-                
-                document.getElementById('joinRoomDiv').style.display = 'block';
-                document.querySelector('.setup-card div').style.display = 'none';
-                document.getElementById('roomIdInput').focus();
-            }
+  // Resetar botão e input
+  sendImageBtn.disabled = false;
+  sendImageBtn.textContent = "📷";
+  imageInput.value = "";
+});
 
-            joinRoom() {
-                const roomId = document.getElementById('roomIdInput').value.trim().toUpperCase();
-                if (!roomId) {
-                    alert('Por favor, digite o código da sala!');
-                    return;
-                }
-                if (roomId.length !== 6) {
-                    alert('Código da sala deve ter 6 caracteres!');
-                    return;
-                }
-                
-                this.roomId = roomId;
-                this.startChat();
-            }
+// Helper: converter arquivo para base64
+function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+</script>
 
-            startChat() {
-                if (!this.db) {
-                    this.setupOfflineMode();
-                    return;
-                }
-
-                try {
-                    // Referência para as mensagens da sala
-                    this.messagesRef = this.db.ref(`chats/${this.roomId}/messages`);
-                    
-                    // Escutar novas mensagens em tempo real
-                    this.messagesRef.on('child_added', (snapshot) => {
-                        const message = snapshot.val();
-                        if (message && message.userId !== this.userId) {
-                            this.displayMessage(message, false);
-                        }
-                    });
-
-                    // Escutar usuários conectados
-                    const usersRef = this.db.ref(`chats/${this.roomId}/users`);
-                    usersRef.on('value', (snapshot) => {
-                        const users = snapshot.val();
-                        if (users) {
-                            const userCount = Object.keys(users).length;
-                            this.updateConnectionStatus(true, `${userCount} usuário(s) online`);
-                        }
-                    });
-
-                    // Registrar usuário como online
-                    const userRef = usersRef.child(this.userId);
-                    userRef.set({
-                        username: this.username,
-                        lastSeen: firebase.database.ServerValue.TIMESTAMP
-                    });
-
-                    // Remover usuário quando desconectar
-                    userRef.onDisconnect().remove();
-
-                    this.isConnected = true;
-                    this.hideSetupScreen();
-                    this.addSystemMessage(`🎉 Bem-vindo à sala ${this.roomId}!`);
-                    
-                } catch (error) {
-                    console.error("Erro ao conectar ao chat:", error);
-                    this.setupOfflineMode();
-                }
-            }
-
-            hideSetupScreen() {
-                document.getElementById('connectionSetup').classList.add('hidden');
-                
-                // Habilitar inputs
-                document.getElementById('messageInput').disabled = false;
-                document.getElementById('messageInput').placeholder = 'Digite sua mensagem...';
-                document.getElementById('sendBtn').disabled = false;
-                document.getElementById('mediaBtn').disabled = false;
-                
-                document.getElementById('messageInput').focus();
-            }
-
-            setupOfflineMode() {
-                this.addSystemMessage("⚠️ Modo offline - Funciona apenas nesta aba");
-                this.addSystemMessage("💡 Para chat real entre dispositivos, configure o Firebase corretamente");
-                this.isConnected = true;
-                this.hideSetupScreen();
-                this.updateConnectionStatus(false, "Modo offline");
-            }
-
-            sendMessage() {
-                const input = document.getElementById('messageInput');
-                const message = input.value.trim();
-                
-                if (!message || !this.isConnected) return;
-
-                const messageData = {
-                    userId: this.userId,
-                    username: this.username,
-                    message: message,
-                    timestamp: Date.now(),
-                    type: 'text'
-                };
-
-                // Mostrar mensagem localmente
-                this.displayMessage(messageData, true);
-
-                // Enviar para Firebase
-                if (this.messagesRef) {
-                    try {
-                        this.messagesRef.push(messageData);
-                    } catch (error) {
-                        console.error("Erro ao enviar mensagem:", error);
-                        this.addSystemMessage("❌ Erro ao enviar mensagem");
-                    }
-                }
-
-                input.value = '';
-                input.style.height = 'auto';
-            }
-
-            displayMessage(messageData, isSent) {
-                const messagesContainer = document.getElementById('chatMessages');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
-                
-                const time = new Date(messageData.timestamp).toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
-
-                let content = '';
-                if (messageData.type === 'text') {
-                    content = this.escapeHtml(messageData.message);
-                } else if (messageData.type === 'image') {
-                    content = `<img src="${messageData.fileData}" alt="Imagem">`;
-                } else if (messageData.type === 'video') {
-                    content = `<video controls><source src="${messageData.fileData}" type="${messageData.fileType}"></video>`;
-                }
-
-                messageDiv.innerHTML = `
-                    ${!isSent ? `<div class="message-sender">👤 ${this.escapeHtml(messageData.username)}</div>` : ''}
-                    <div>${content}</div>
-                    <div class="message-time">${time}</div>
-                `;
-                
-                messagesContainer.appendChild(messageDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-
-            selectMedia() {
-                if (!this.isConnected) return;
-                document.getElementById('fileInput').click();
-            }
-
-            handleFileSelect() {
-                const fileInput = document.getElementById('fileInput');
-                const file = fileInput.files[0];
-                
-                if (!file || !this.isConnected) return;
-
-                // Limite de 2MB para demonstração
-                if (file.size > 2 * 1024 * 1024) {
-                    alert('Arquivo muito grande! Máximo 2MB.');
-                    fileInput.value = '';
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const fileData = e.target.result;
-                    const messageData = {
-                        userId: this.userId,
-                        username: this.username,
-                        type: file.type.startsWith('image/') ? 'image' : 'video',
-                        fileData: fileData,
-                        fileType: file.type,
-                        timestamp: Date.now()
-                    };
-
-                    // Mostrar localmente
-                    this.displayMessage(messageData, true);
-
-                    // Enviar para Firebase
-                    if (this.messagesRef) {
-                        try {
-                            this.messagesRef.push(messageData);
-                        } catch (error) {
-                            console.error("Erro ao enviar arquivo:", error);
-                            this.addSystemMessage("❌ Erro ao enviar arquivo");
-                        }
-                    }
-                };
-                reader.readAsDataURL(file);
-                fileInput.value = '';
-            }
-
-            addSystemMessage(content) {
-                const messagesContainer = document.getElementById('chatMessages');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'system-message';
-                messageDiv.textContent = content;
-                
-                messagesContainer.appendChild(messageDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-
-            updateConnectionStatus(connected, text) {
-                const statusDot = document.getElementById('statusDot');
-                const statusText = document.getElementById('statusText');
-                
-                if (connected) {
-                    statusDot.classList.add('connected');
-                } else {
-                    statusDot.classList.remove('connected');
-                }
-                
-                statusText.textContent = text || (connected ? 'Conectado' : 'Desconectado');
-            }
-
-            copyRoomId() {
-                const roomId = document.getElementById('roomIdDisplay').textContent;
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(roomId).then(() => {
-                        alert('Código copiado! 📋');
-                    });
-                } else {
-                    // Fallback para dispositivos mais antigos
-                    const textArea = document.createElement('textarea');
-                    textArea.value = roomId;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    alert('Código copiado! 📋');
-                }
-            }
-
-            escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
-        }
-
-        // Inicializar o chat
-        const chat = new FirebaseChat();
-
-        // Funções globais
-        function createRoom() {
-            chat.createRoom();
-        }
-
-        function showJoinRoom() {
-            chat.showJoinRoom();
-        }
-
-        function joinRoom() {
-            chat.joinRoom();
-        }
-
-        function startChat() {
-            chat.startChat();
-        }
-
-        function sendMessage() {
-            chat.sendMessage();
-        }
-
-        function selectMedia() {
-            chat.selectMedia();
-        }
-
-        function handleFileSelect() {
-            chat.handleFileSelect();
-        }
-
-        function copyRoomId() {
-            chat.copyRoomId();
-        }
-    </script>
 </body>
-</html>
+    </html>
