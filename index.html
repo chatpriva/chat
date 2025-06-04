@@ -448,41 +448,34 @@
         window.IMGBB_API_KEY = "9d8b9a43b078313550201dba6c888feb";
 
         // Funções de login
-        window.login = function() {
+        function login() {
             const password = document.getElementById('password').value;
-            const username = document.getElementById('username').value.trim();
             const errorMessage = document.getElementById('errorMessage');
 
-            if (!password || !username) {
-                errorMessage.textContent = 'Por favor, preencha todos os campos.';
+            if (!password) {
+                errorMessage.textContent = 'Por favor, digite o código de acesso.';
                 return;
             }
 
             if (password !== window.CORRECT_PASSWORD) {
-                errorMessage.textContent = 'Senha incorreta. Tente novamente.';
-                return;
-            }
-
-            if (username.length < 2) {
-                errorMessage.textContent = 'Nome deve ter pelo menos 2 caracteres.';
+                errorMessage.textContent = 'Código incorreto. Tente novamente.';
                 return;
             }
 
             // Login bem-sucedido
-            window.currentUser = username;
+            window.currentUser = 'Anônimo_' + Math.random().toString(36).substr(2, 5);
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('chatContainer').style.display = 'block';
             
             // Inicializar chat
             initChat();
-        };
+        }
 
-        window.logout = function() {
+        function logout() {
             window.currentUser = null;
             document.getElementById('chatContainer').style.display = 'none';
             document.getElementById('loginContainer').style.display = 'block';
             document.getElementById('password').value = '';
-            document.getElementById('username').value = '';
             document.getElementById('errorMessage').textContent = '';
         };
 
@@ -523,7 +516,7 @@
 
                 // Adicionar nome do remetente (apenas para mensagens recebidas)
                 if (message.sender !== window.currentUser) {
-                    content += `<div class="message-sender">${message.sender}</div>`;
+                    content += `<div class="message-sender">Usuário</div>`;
                 }
 
                 // Adicionar mídia se existir
@@ -572,17 +565,17 @@
             });
 
             messageInput.value = '';
-        };
+        }
 
         // Handle Enter key
-        window.handleKeyPress = function(event) {
+        function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 sendMessage();
             }
-        };
+        }
 
         // Upload de mídia
-        window.uploadMedia = function() {
+        function uploadMedia() {
             const file = document.getElementById('mediaInput').files[0];
             if (!file) return;
 
@@ -637,23 +630,28 @@
         }
 
         // Abrir mídia em nova aba
-        window.openMedia = function(url) {
+        function openMedia(url) {
             window.open(url, '_blank');
-        };
+        }
+
+        // Tornar as funções globais para serem acessadas pelos botões
+        window.login = login;
+        window.logout = logout;
+        window.sendMessage = sendMessage;
+        window.handleKeyPress = handleKeyPress;
+        window.uploadMedia = uploadMedia;
+        window.openMedia = openMedia;
 
         // Permitir login com Enter
         document.addEventListener('DOMContentLoaded', function() {
             const passwordInput = document.getElementById('password');
-            const usernameInput = document.getElementById('username');
             
-            [passwordInput, usernameInput].forEach(input => {
-                input.addEventListener('keypress', function(event) {
-                    if (event.key === 'Enter') {
-                        login();
-                    }
-                });
+            passwordInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    login();
+                }
             });
         });
     </script>
 </body>
-              </html>
+                                                               </html>
